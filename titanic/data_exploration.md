@@ -182,13 +182,13 @@ data %>% group_by(Survived) %>% summarise(mean = mean(Fare), median(Fare), iqr =
     ## 2        1  48.4           26    44.5
 
 ``` r
-ggplot(data=data, aes(x=factor(Survived), y=Fare)) + geom_boxplot()
+ggplot(data=data, aes(x=factor(Survived), y=Fare)) + geom_boxplot() + theme(legend.position = 'bottom')
 ```
 
 ![](data_exploration_files/figure-gfm/survival%20by%20continuous%20variables-1.png)<!-- -->
 
 ``` r
-ggplot(data=data, aes(x=factor(Survived), y=Age)) + geom_boxplot()
+ggplot(data=data, aes(x=factor(Survived), y=Age)) + geom_boxplot() + theme(legend.position = 'bottom')
 ```
 
     ## Warning: Removed 177 rows containing non-finite values (stat_boxplot).
@@ -196,13 +196,13 @@ ggplot(data=data, aes(x=factor(Survived), y=Age)) + geom_boxplot()
 ![](data_exploration_files/figure-gfm/survival%20by%20continuous%20variables-2.png)<!-- -->
 
 ``` r
-ggplot(data=data, aes(x=Fare, fill=factor(Sex))) + geom_density()
+ggplot(data=data, aes(x=Fare, fill=factor(Sex))) + geom_density() + theme(legend.position = 'bottom')
 ```
 
 ![](data_exploration_files/figure-gfm/survival%20by%20continuous%20variables-3.png)<!-- -->
 
 ``` r
-ggplot(data=data, aes(x=Fare, fill=factor(Survived))) + geom_density() + facet_wrap(~ factor(Sex))
+ggplot(data=data, aes(x=Fare, fill=factor(Survived))) + geom_density() + facet_wrap(~ factor(Sex)) + theme(legend.position = 'bottom')
 ```
 
 ![](data_exploration_files/figure-gfm/survival%20by%20continuous%20variables-4.png)<!-- -->
@@ -224,7 +224,7 @@ data %>% group_by(Survived) %>% summarise(mean = mean(Age, na.rm=TRUE), median(A
     ## 2        1  28.3                          28    17
 
 ``` r
-ggplot(data=data, aes(x=factor(Survived), y=Age)) + geom_boxplot()
+ggplot(data=data, aes(x=factor(Survived), y=Age)) + geom_boxplot() + theme(legend.position = 'bottom')
 ```
 
     ## Warning: Removed 177 rows containing non-finite values (stat_boxplot).
@@ -232,19 +232,19 @@ ggplot(data=data, aes(x=factor(Survived), y=Age)) + geom_boxplot()
 ![](data_exploration_files/figure-gfm/more%20analysis-1.png)<!-- -->
 
 ``` r
-ggplot(data=data, aes(x=Fare, fill=factor(Embarked))) + geom_density()
+ggplot(data=data, aes(x=Fare, fill=factor(Embarked))) + geom_density() + theme(legend.position = 'bottom')
 ```
 
 ![](data_exploration_files/figure-gfm/more%20analysis-2.png)<!-- -->
 
 ``` r
-ggplot(data=data, aes(x=Fare, colour=factor(Embarked))) + stat_ecdf()
+ggplot(data=data, aes(x=Fare, colour=factor(Embarked))) + stat_ecdf() + theme(legend.position = 'bottom')
 ```
 
 ![](data_exploration_files/figure-gfm/more%20analysis-3.png)<!-- -->
 
 ``` r
-ggplot(data = data, aes(x=Fare)) + geom_histogram() + facet_wrap(~Survived)
+ggplot(data = data, aes(x=Fare)) + geom_histogram() + facet_wrap(~Survived) + theme(legend.position = 'bottom')
 ```
 
     ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
@@ -252,7 +252,7 @@ ggplot(data = data, aes(x=Fare)) + geom_histogram() + facet_wrap(~Survived)
 ![](data_exploration_files/figure-gfm/more%20analysis-4.png)<!-- -->
 
 ``` r
-ggplot(data = data, aes(x=Fare, fill=sib2)) + geom_density() + facet_wrap(~Survived)
+ggplot(data = data, aes(x=Fare, fill=sib2)) + geom_density() + facet_wrap(~Survived) + theme(legend.position = 'bottom')
 ```
 
 ![](data_exploration_files/figure-gfm/more%20analysis-5.png)<!-- -->
