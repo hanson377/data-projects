@@ -1,13 +1,49 @@
 Quick Exploration of Classic Titanic Dataset
 ================
 
-## Setup
+## Load packages and data
 
-### Load packages
+Simply loading the packages we will need for this exercise as well as
+the data we will need.
 
-### Load data
+``` r
+library(ggplot2)
+```
 
-### Lets begin by looking at survival rates for some variables that I think might show us something interesting.
+    ## Warning: package 'ggplot2' was built under R version 3.6.1
+
+``` r
+library(dplyr)
+library(statsr)
+```
+
+    ## Warning: package 'statsr' was built under R version 3.6.2
+
+    ## Warning: package 'BayesFactor' was built under R version 3.6.2
+
+    ## Warning: package 'coda' was built under R version 3.6.2
+
+``` r
+library(DescTools)
+```
+
+    ## Warning: package 'DescTools' was built under R version 3.6.2
+
+``` r
+library(InformationValue)
+```
+
+    ## Warning: package 'InformationValue' was built under R version 3.6.2
+
+``` r
+data <- read.csv("C:/Users/hanso/OneDrive/Documents/GitHub/data-projects/titanic/train.csv")
+```
+
+## Exploratory data analysis
+
+Lets begin by looking at survival rates for some variables that I think
+might show us something
+interesting.
 
 ``` r
 data %>% group_by(Pclass) %>% summarise(mean = mean(Survived), sample = n())
@@ -126,9 +162,14 @@ data %>% group_by(embark_alt) %>% summarise(mean = mean(Survived), sample = n())
     ## 2 C          0.554    168
     ## 3 Other      0.343    721
 
-## all of the above seem to vary greatly by different levels.
+## A few quick observations
 
-## now, lets look at the relationship between survival and some continuous variables
+All of the above seem to vary greatly by different levels.  
+We will want to include these in our modeling efforts.
+
+Now, lets look at the relationship between survival rates and some
+continuous
+variables
 
 ``` r
 data %>% group_by(Survived) %>% summarise(mean = mean(Fare), median(Fare), iqr = IQR(Fare))
@@ -166,7 +207,11 @@ ggplot(data=data, aes(x=Fare, fill=factor(Survived))) + geom_density() + facet_w
 
 ![](data_exploration_files/figure-gfm/survival%20by%20continuous%20variables-4.png)<!-- -->
 
-## from the above, it seems pretty clear your odds of survival were depending on your fare amount.
+## A quick observation
+
+From the above, it seems pretty clear your odds of survival were
+depending on your fare
+amount.
 
 ``` r
 data %>% group_by(Survived) %>% summarise(mean = mean(Age, na.rm=TRUE), median(Age,na.rm=TRUE), iqr = IQR(Age,na.rm=TRUE))
@@ -212,7 +257,8 @@ ggplot(data = data, aes(x=Fare, fill=sib2)) + geom_density() + facet_wrap(~Survi
 
 ![](data_exploration_files/figure-gfm/more%20analysis-5.png)<!-- -->
 
-## finally, lets look at the cabin. seems we have a lot of nulls. lets fill those in with “unknown”
+Finally, lets look at the cabin field. seems we have a lot of nulls.
+lets fill those in with “unknown”
 
 ``` r
 data <- data %>% mutate(cabin_alt = case_when(
@@ -259,13 +305,14 @@ data %>% group_by(cabin2) %>% summarise(mean = mean(Survived), sample = n())
     ## 2 no value OR A/G/F 0.300    687
     ## 3 Other             0.5        4
 
-## looks like we have something here. people with a designated cabin seem to have much higher survival rates.
+Looks like we have something here.  
+People with a designated cabin seem to have much higher survival rates.
 
-## now, let us build a very simple model with what we learned from above.
+## Model Building
 
-## we will begin by creating some training and test data.
-
-# Create Training Data
+Now, let us build a very simple model with what we learned from above.
+We will begin by creating some training and test data. Below, we create
+the training and test data.
 
 ``` r
 input_ones <- data[which(data$Survived == 1), ]  # all 1's
@@ -277,13 +324,14 @@ training_ones <- input_ones[input_ones_training_rows, ]
 training_zeros <- input_zeros[input_zeros_training_rows, ]
 trainingData <- rbind(training_ones, training_zeros)  # row bind the 1's and 0's
 
-# Create Test Data
 test_ones <- input_ones[-input_ones_training_rows, ]
 test_zeros <- input_zeros[-input_zeros_training_rows, ]
 testData <- rbind(test_ones, test_zeros)  # row bind the 1's and 0's
 ```
 
-## now, lets begin building our model using our findings from above and condition it with the training data.
+Now that we have some data, lets begin building our model using our
+findings from above and condition it with the training
+data.
 
 ``` r
 fit1 <- glm(Survived ~ factor(Pclass) + factor(embark_alt) + factor(Sex) + factor(cabin2) + Fare, data = trainingData, family = "binomial")
