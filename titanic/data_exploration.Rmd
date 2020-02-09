@@ -2,8 +2,8 @@
 title: "Quick Exploration of Classic Titanic Dataset"
 output:
   github_document:
-    fig_width: 5
-    fig_height: 5
+    fig_width: 9
+    fig_height: 4
 ---
 
 
@@ -54,11 +54,11 @@ Now, lets look at the relationship between survival rates and some continuous va
 
 ```{r survival by continuous variables}
 data %>% group_by(Survived) %>% summarise(mean = mean(Fare), median(Fare), iqr = IQR(Fare))
-ggplot(data=data, aes(x=factor(Survived), y=Fare)) + geom_boxplot()
-ggplot(data=data, aes(x=factor(Survived), y=Age)) + geom_boxplot()
+ggplot(data=data, aes(x=factor(Survived), y=Fare)) + geom_boxplot() + theme(legend.position = 'bottom')
+ggplot(data=data, aes(x=factor(Survived), y=Age)) + geom_boxplot() + theme(legend.position = 'bottom')
 
-ggplot(data=data, aes(x=Fare, fill=factor(Sex))) + geom_density()
-ggplot(data=data, aes(x=Fare, fill=factor(Survived))) + geom_density() + facet_wrap(~ factor(Sex))
+ggplot(data=data, aes(x=Fare, fill=factor(Sex))) + geom_density() + theme(legend.position = 'bottom')
+ggplot(data=data, aes(x=Fare, fill=factor(Survived))) + geom_density() + facet_wrap(~ factor(Sex)) + theme(legend.position = 'bottom')
 ```
 
 ## A quick observation
@@ -67,12 +67,12 @@ From the above, it seems pretty clear your odds of survival were depending on yo
 
 ```{r more analysis}
 data %>% group_by(Survived) %>% summarise(mean = mean(Age, na.rm=TRUE), median(Age,na.rm=TRUE), iqr = IQR(Age,na.rm=TRUE))
-ggplot(data=data, aes(x=factor(Survived), y=Age)) + geom_boxplot()
-ggplot(data=data, aes(x=Fare, fill=factor(Embarked))) + geom_density()
-ggplot(data=data, aes(x=Fare, colour=factor(Embarked))) + stat_ecdf()
+ggplot(data=data, aes(x=factor(Survived), y=Age)) + geom_boxplot() + theme(legend.position = 'bottom')
+ggplot(data=data, aes(x=Fare, fill=factor(Embarked))) + geom_density() + theme(legend.position = 'bottom')
+ggplot(data=data, aes(x=Fare, colour=factor(Embarked))) + stat_ecdf() + theme(legend.position = 'bottom')
 
-ggplot(data = data, aes(x=Fare)) + geom_histogram() + facet_wrap(~Survived)
-ggplot(data = data, aes(x=Fare, fill=sib2)) + geom_density() + facet_wrap(~Survived)
+ggplot(data = data, aes(x=Fare)) + geom_histogram() + facet_wrap(~Survived) + theme(legend.position = 'bottom')
+ggplot(data = data, aes(x=Fare, fill=sib2)) + geom_density() + facet_wrap(~Survived) + theme(legend.position = 'bottom')
 ```
 
 
