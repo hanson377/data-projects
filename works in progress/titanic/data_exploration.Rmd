@@ -10,7 +10,7 @@ output:
 ## Load packages and data
 Simply loading the packages we will need for this exercise as well as the data we will need.
 
-```{r load-packages and data, message = FALSE}
+```{r load-packages and data, message = FALSE, echo = FALSE}
 library(ggplot2)
 library(dplyr)
 library(statsr)
@@ -24,7 +24,7 @@ data <- read.csv("C:/Users/hanso/OneDrive/Documents/GitHub/data-projects/titanic
 ## Exploratory data analysis
 Lets begin by looking at survival rates for some variables that I think might show us something interesting.
 
-```{r initial survival rates}
+```{r initial survival rates, echo = FALSE}
 data %>% group_by(Pclass) %>% summarise(mean = mean(Survived), sample = n())
 data %>% group_by(Sex) %>% summarise(mean = mean(Survived), sample = n())
 data %>% group_by(Embarked) %>% summarise(mean = mean(Survived), sample = n())
