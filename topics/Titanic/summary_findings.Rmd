@@ -1,0 +1,234 @@
+---
+title: "Predicting Survival on the Titanic: Tree Regression + Random Forest"
+output:
+  github_document:
+    fig_width: 7
+    fig_height: 4
+---
+
+**Objective:**
+Compare the predictive power of the following methods:  
+1. Logistic Regression  
+2. Classification Tree
+3. Random Forest
+
+**Answer #1:**
+First, let us plot the beta distribution of interest (beta(1,6)).  We will then integrate between 0.4 and 0.6 to calculate the probability that the coin is reasonably fair.
+
+```{r load packages and data, include = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(gridExtra)
+library(randomForest)
+library(gbm)
+library(tree)
+library(InformationValue)
+
+train <- read.csv("/Users/hanson377/Documents/GitHub/data-projects/topics/Titanic/data/train.csv")
+train <- na.omit(train)
+train <- train %>% filter(Embarked != '')
+```
+
+```{r test factor variables for significance, echo = FALSE}
+calc <- function(grouping_var) {
+  grouping_var <- enquo(grouping_var)
+
+  summary <- train %>% group_by(!!grouping_var) %>% summarise(survival_rate = mean(Survived), n = n_distinct(PassengerId)) %>% select(survival_rate,n,value=!!grouping_var)
+
+  return(summary)
+}
+
+pclass <- calc(Pclass)
+pclass$var <- 'pclass'
+plot1 <- ggplot(pclass, aes(x=value,y=survival_rate,fill=factor(value))) + geom_bar(stat='identity') + facet_wrap(~var) + scale_y_continuous(labels=scales::percent) + xlab('') + ylab('Survival Rate') + geom_text(aes(label=n),position=position_dodge(0.9),vjust=-0.25) + theme(legend.position='none')
+
+
+sex <- calc(Sex)
+sex$var <- 'sex'
+plot2 <- ggplot(sex, aes(x=value,y=survival_rate,fill=factor(value))) + geom_bar(stat='identity') + facet_wrap(~var) + scale_y_continuous(labels=scales::percent) + xlab('') + ylab('Survival Rate')+ geom_text(aes(label=n),position=position_dodge(0.9),vjust=-0.25) + theme(legend.position='none')
+
+
+embarked <- calc(Embarked)
+embarked$var <- 'embarked'
+plot3 <- ggplot(embarked, aes(x=value,y=survival_rate,fill=factor(value))) + geom_bar(stat='identity') + facet_wrap(~var) + scale_y_continuous(labels=scales::percent) + xlab('') + ylab('Survival Rate')+ geom_text(aes(label=n),position=position_dodge(0.9),vjust=-0.25) + theme(legend.position='none')
+
+sib <- calc(SibSp)
+sib$var <- 'sib'
+plot4 <- ggplot(sib, aes(x=value,y=survival_rate,fill=factor(value))) + geom_bar(stat='identity') + facet_wrap(~var) + scale_y_continuous(labels=scales::percent) + xlab('') + ylab('Survival Rate')+ geom_text(aes(label=n),position=position_dodge(0.9),vjust=-0.25) + theme(legend.position='none')
+
+parch <- calc(Parch)
+parch$var <- 'parch'
+plot5 <- ggplot(parch, aes(x=value,y=survival_rate,fill=factor(value))) + geom_bar(stat='identity') + facet_wrap(~var) + scale_y_continuous(labels=scales::percent) + xlab('') + ylab('Survival Rate')+ geom_text(aes(label=n),position=position_dodge(0.9),vjust=-0.25) + theme(legend.position='none')
+
+results <- rbind(pclass,sex,embarked,sib,parch)
+rm(pclass,sex,embarked,sib,parch)
+
+grid.arrange(plot1, plot2, plot3, plot4, plot5, nrow = 2)
+```
+
+```{r adjust vars}
+prepare <- function(data) { ## write function that will do some variable engineering which we can easily apply to both the training and test data set
+data$cabin_alt <- substr(data$Cabin,0,1)
+data$cabin_alt <- ifelse(data$cabin_alt == '','no cabin',data$cabin_alt)
+
+data$cabin_status <- ifelse(data$cabin_alt == 'no cabin','no cabin','cabin')
+
+data$cabin_status <- ifelse(data$cabin_alt == 'no cabin','no cabin','cabin')
+
+data$Parch_alt <- ifelse(data$Parch == 0,'0','Not Zero')
+data$SibSp_alt <- ifelse(data$SibSp == 0,'0','Not Zero')
+
+data$test <- str_split(data$Name,',')
+
+data$title <- unlist(lapply(strsplit(as.character(data$Name), ","), '[[', 2))
+data$title <- unlist(lapply(strsplit(as.character(data$title), "[.]"), '[[', 1))
+data$title <- trimws(data$title)
+
+data$title <- ifelse(data$title == 'Ms', 'Miss', data$title)
+data$title <- ifelse(data$title == 'Mlle', 'Miss', data$title)
+
+data$title <- ifelse(data$title == 'Mme', 'Mrs', data$title)
+data$title <- ifelse(data$title == 'Lady', 'Mrs', data$title)
+data$title <- ifelse(data$title == 'the Countess', 'Mrs', data$title)
+data$title <- ifelse(data$title == 'Dona', 'Mrs', data$title)
+
+data$title <- ifelse(data$title == 'Sir', 'Mr', data$title)
+data$title <- ifelse(data$title == 'Capt', 'Mr', data$title)
+data$title <- ifelse(data$title == 'Col', 'Mr', data$title)
+data$title <- ifelse(data$title == 'Don', 'Mr', data$title)
+data$title <- ifelse(data$title == 'Major', 'Mr', data$title)
+data$title <- ifelse(data$title == 'Rev', 'Mr', data$title)
+data$title <- ifelse(data$title == 'Jonkheer', 'Mr', data$title)
+data$title <- ifelse(data$title == 'Dr', 'Mr', data$title)
+
+
+data$ticket_alt <- unlist(lapply(strsplit(as.character(data$Ticket), " "), '[[', 1))
+data$ticket_alt <- unlist(lapply(strsplit(as.character(data$ticket_alt), "/"), '[[', 1))
+data$ticket_alt <- str_replace(data$ticket_alt, '[.]', '')
+
+data$Pclass <- factor(data$Pclass)
+data$Sex <- factor(data$Sex)
+data$Embarked <- factor(data$Embarked)
+data$SibSp <- factor(data$SibSp)
+data$Parch <- factor(data$Parch)
+data$cabin_status <- factor(data$cabin_status)
+data$Parch_alt <- factor(data$Parch_alt)
+data$SibSp_alt <- factor(data$SibSp_alt)
+data$cabin_alt <- factor(data$cabin_alt)
+data$title <- factor(data$title)
+
+data$Age <- ifelse(is.na(data$Age) == TRUE,mean(data$Age,na.rm=TRUE),data$Age)
+data$Fare <- ifelse(is.na(data$Fare) == TRUE,mean(data$Fare,na.rm=TRUE),data$Fare)
+
+data <- data %>% select(Pclass, Embarked, SibSp_alt, Parch_alt,cabin_status,Fare,Age,title)
+
+return(data)
+}
+
+temp <- prepare(train)
+train <- data.frame(Survived = train$Survived,temp)
+train$Survived <- factor(train$Survived)
+
+```
+
+
+```{r look at tree method}
+set.seed(1431)
+
+tree <- tree(Survived~.,data=train)
+plot(tree)
+text(tree)
+
+prediction_tree <- predict(tree, train, type="class")  # predicted scores
+```  
+
+
+```{r look at logistic method}
+logistic <- glm(Survived~.,data=train,family='binomial')
+summary(logistic)
+
+prediction_logit <- predict(logistic, train, type="response")  # predicted scores
+
+optCutOff <- optimalCutoff(train$Survived, prediction_logit)
+prediction_logit <- ifelse(prediction_logit >= optCutOff,1,0)
+prediction_logit <- factor(prediction_logit)
+```
+
+```{r look at random forest}
+forest_model <- randomForest(Survived~., data=train, ntree=500, proximity=T)
+prediction_forest <- predict(forest_model, train, type="response")  # predicted scores
+```  
+
+```{r look at boosting}
+temp <- train
+temp$Survived <- as.numeric(temp$Survived)
+
+temp$Survived <- temp$Survived-1
+
+boosting_model <- gbm(Survived~., data=temp, distribution='bernoulli',n.trees=10000,interaction.depth=8,shrinkage=0.001)
+prediction_boost <- predict(boosting_model, train, n.trees=10000, type = 'response')  # predicted scores
+
+optCutOff <- optimalCutoff(temp$Survived, prediction_boost, optimiseFor = 'misclasserror')
+prediction_boost <- ifelse(prediction_boost >= optCutOff,1,0)
+prediction_boost <- factor(prediction_boost)
+
+remove(temp)
+```
+
+```{r quick look at error rates across models}
+results <- data.frame(train,prediction_tree,prediction_logit,prediction_forest,prediction_forest2,prediction_forest3,prediction_boost)
+
+results <- results %>% select(Survived,prediction_tree,prediction_logit,prediction_forest,prediction_forest2,prediction_forest3,prediction_boost)
+positives <- results %>% filter(Survived == 1)
+negatives <- results %>% filter(Survived == 0)
+
+
+calculate_error <- function(results) {
+results$tree <- ifelse(results$prediction_tree == results$Survived,'Correct','Incorrect')
+results$logistic <- ifelse(results$prediction_logit == results$Survived,'Correct','Incorrect')
+results$forest <- ifelse(results$prediction_forest == results$Survived,'Correct','Incorrect')
+results$boost <- ifelse(results$prediction_boost == results$Survived,'Correct','Incorrect')
+
+tree <- results %>% group_by(tree) %>% summarise(count = n()) %>% select(result = tree,count)
+logit <- results %>% group_by(logistic) %>% summarise(count = n()) %>% select(result = logistic,count)
+forest <- results %>% group_by(forest) %>% summarise(count = n()) %>% select(result = forest,count)
+boost <- results %>% group_by(boost) %>% summarise(count = n()) %>% select(result = boost,count)
+
+tree$method <- 'Classification Tree'
+logit$method <- 'Logistic Regression'
+forest$method <- 'Random Forest'
+boost$method <- 'Gradient Boosting'
+
+
+results <- rbind(tree,logit,forest,boost)
+rm(tree,logit,forest,boost)
+
+results <- results %>% group_by(method) %>% summarise(correct = max(count[result=='Correct']), wrong = max(count[result=='Incorrect'])) %>% mutate(error = wrong/(correct+wrong))
+return(results)
+}
+overall <- calculate_error(results)
+sensitivity <- calculate_error(positives)
+specificity <- calculate_error(negatives)
+
+misclass <- ggplot(overall,aes(x=method,y=error,fill=method)) + geom_bar(stat='identity') + xlab('') + ylab('Misclassification Rate') + scale_y_continuous(label=scales::percent) + theme(legend.position = 'none') + geom_text(aes(label=paste(round(error,digits=3)*100,'%')),position=position_dodge(0.9),vjust=-0.25)
+
+sensitivity <- ggplot(sensitivity,aes(x=method,y=error,fill=method)) + geom_bar(stat='identity') + xlab('') + ylab('Sensitivity') + scale_y_continuous(label=scales::percent) + theme(legend.position = 'none') + geom_text(aes(label=paste(round(error,digits=3)*100,'%')),position=position_dodge(0.9),vjust=-0.25)
+
+specificity <- ggplot(specificity,aes(x=method,y=error,fill=method)) + geom_bar(stat='identity') + xlab('') + ylab('Specificity') + scale_y_continuous(label=scales::percent) + theme(legend.position = 'none') + geom_text(aes(label=paste(round(error,digits=3)*100,'%')),position=position_dodge(0.9),vjust=-0.25)
+
+grid.arrange(misclass, sensitivity, specificity, nrow=1)
+```  
+
+```{r prepare test data and make predictions}
+test <- read.csv("/Users/hanson377/Documents/GitHub/data-projects/topics/Titanic/data/test.csv")
+temp <- prepare(test)
+test <- data.frame(PassengerId = test$PassengerId,temp)
+rm(temp)
+
+test$Survived <- predict(boosting_model, test, type="response")  # predicted scores
+test$Survived <- ifelse(test$Survived >= optCutOff,1,0)
+
+final <- test %>% select(PassengerId,Survived)
+final$Survived <- as.numeric(final$Survived)
+write.csv(final, "/Users/hanson377/Documents/GitHub/data-projects/topics/Titanic/data/gender_submission.csv", row.names=FALSE)
+```
